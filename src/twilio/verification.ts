@@ -31,7 +31,21 @@ export async function checkToken(inputs: {
         headers: defaultHeaders,
         method: "POST",
         body: verificationBody
-    }).then(raw => raw.json());
+    }).then(raw => raw.json()) as CheckTokenResponse;
 }
 
 
+type CheckTokenResponse = typeof checkTokenResponseExample;
+const checkTokenResponseExample = {
+    "status": "approved",
+    "payee": null,
+    "date_updated": "2023-03-15T03:15:31Z",
+    "account_sid": "AC78d7be9faeb699e14876d1f914e15a03",
+    "to": "+15551231234",
+    "amount": null,
+    "valid": true,
+    "sid": "VE60de78d97d8b4a4a7aed2b1a111e44e2",
+    "date_created": "2023-03-15T03:15:23Z",
+    "service_sid": "VAf7dd8eaf72cf9f5de9883cfdf85f5ee3",
+    "channel": "sms"
+}

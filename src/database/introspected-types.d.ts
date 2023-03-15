@@ -12,6 +12,7 @@ export interface Test {
 export interface Users {
   id: Generated<number>;
   phone_number: string;
+  auth_token: Generated<string>;
 }
 
 export interface DB {
