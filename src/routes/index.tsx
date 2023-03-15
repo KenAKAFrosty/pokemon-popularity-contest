@@ -1,9 +1,9 @@
 
 
 import { component$, useSignal, useStylesScoped$, useTask$ } from '@builder.io/qwik';
-import { DocumentHead, routeLoader$, server$ } from '@builder.io/qwik-city';
+import { type DocumentHead, routeLoader$, server$ } from '@builder.io/qwik-city';
 import { sql } from 'kysely';
-import { DatabaseTable, getQueryBuilder } from '~/database/query-builder';
+import { type DatabaseTable, getQueryBuilder } from '~/database/query-builder';
 import { getUuId } from '~/generic-utilities';
 import { getPokemon, getRandomPokemonId } from '~/pokeapi/pokemon';
 import { checkToken, sendToken } from '~/twilio/verification';
@@ -191,7 +191,7 @@ export const Login = component$(() => {
   const phoneNumberSignal = useSignal("");
   const codeSignal = useSignal("");
   return <section>
-    <p>phone number</p>
+    <p>phone number (with full country code, e.g. +18885551212)</p>
     <input
       value={phoneNumberSignal.value}
       onChange$={event => {
