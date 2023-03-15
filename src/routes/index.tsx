@@ -49,7 +49,7 @@ export const useTwoRandomPokemon = routeLoader$(async (context) => {
 export default component$(() => {
   const currentUser = useCurrentUser();
   const pokemon = useTwoRandomPokemon();
-  if (pokemon.value === null) {
+  if (currentUser.value && pokemon.value === null) {
     throw new Error("Pokemon is null")
   }
   console.log(currentUser.value)
@@ -61,7 +61,7 @@ export default component$(() => {
         <h2>Logged in.</h2>
         : <h2>Not logged in</h2>
     }
-    {currentUser.value ? <PokemonPicker pokemon={pokemon.value} /> : <Login />}
+    {currentUser.value ? <PokemonPicker pokemon={pokemon.value!} /> : <Login />}
   </main>);
 });
 
