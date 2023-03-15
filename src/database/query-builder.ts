@@ -4,9 +4,9 @@ import { DB } from "./introspected-types"
 
 const qb = new Kysely<DB>({
     dialect: new PlanetScaleDialect({
-        host: import.meta.env.VITE_DATABASE_HOST,
-        username: import.meta.env.VITE_DATABASE_USERNAME,
-        password: import.meta.env.VITE_DATABASE_PASSWORD,
+        host: import.meta.env.VITE_DATABASE_HOST || process.env.VITE_DATABASE_HOST,
+        username: import.meta.env.VITE_DATABASE_USERNAME || process.env.VITE_DATABASE_USERNAME,
+        password: import.meta.env.VITE_DATABASE_PASSWORD || process.env.VITE_DATABASE_PASSWORD,
     }),
 })
 
