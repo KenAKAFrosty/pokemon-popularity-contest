@@ -21,8 +21,7 @@ export const useCurrentUser = routeLoader$(async (context) => {
   return user || null;
 });
 
-export const useSelections = routeLoader$(async (context) => {
-
+export const useSelections = routeLoader$(async () => {
   const qb = getQueryBuilder()
   const selections = await qb.selectFrom("selections")
     .select(sql<number>`COUNT(*)`.as("count"))
