@@ -1,1 +1,1 @@
-SELECT * FROM users;
+ALTER TABLE selections ADD COLUMN userId INT NOT NULL;

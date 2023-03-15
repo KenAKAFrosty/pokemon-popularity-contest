@@ -1,8 +1,9 @@
 
 
-import { component$, useSignal } from '@builder.io/qwik';
+import { component$, useSignal, useStylesScoped$, useTask$ } from '@builder.io/qwik';
 import { DocumentHead, routeLoader$, server$ } from '@builder.io/qwik-city';
-import { getQueryBuilder } from '~/database/query-builder';
+import { sql } from 'kysely';
+import { DatabaseTable, getQueryBuilder } from '~/database/query-builder';
 import { getUuId } from '~/generic-utilities';
 import { getPokemon, getRandomPokemonId } from '~/pokeapi/pokemon';
 import { checkToken, sendToken } from '~/twilio/verification';
@@ -19,6 +20,19 @@ export const useCurrentUser = routeLoader$(async (context) => {
     .executeTakeFirst();
   return user || null;
 });
+
+export const useSelections = routeLoader$(async (context) => {
+
+  const qb = getQueryBuilder()
+  const selections = await qb.selectFrom("selections")
+    .select(sql<number>`COUNT(*)`.as("count"))
+    .select("selectionName")
+    .groupBy("selectionName")
+    .orderBy("count", "desc")
+    .execute();
+  return selections;
+
+})
 
 export const useTwoRandomPokemon = routeLoader$(async (context) => {
   const user = await context.resolveValue(useCurrentUser);
@@ -37,7 +51,8 @@ export const useTwoRandomPokemon = routeLoader$(async (context) => {
       }
       return {
         name: pokemonResponse.pokemon.name,
-        image: pokemonResponse.pokemon.sprites.front_default
+        image: pokemonResponse.pokemon.sprites.front_default,
+        id: pokemonResponse.pokemon.id
       }
     });
     return pokemon;
@@ -49,6 +64,7 @@ export const useTwoRandomPokemon = routeLoader$(async (context) => {
 export default component$(() => {
   const currentUser = useCurrentUser();
   const pokemon = useTwoRandomPokemon();
+  const selections = useSelections();
   if (currentUser.value && pokemon.value === null) {
     throw new Error("Pokemon is null")
   }
@@ -62,28 +78,113 @@ export default component$(() => {
         : <h2>Not logged in</h2>
     }
     {currentUser.value ? <PokemonPicker pokemon={pokemon.value!} /> : <Login />}
+    <PopularityResults selections={selections.value} />
   </main>);
 });
 
+export const PopularityResults = component$((props: {
+  selections: (Pick<DatabaseTable<"selections">, "selectionName"> & { count: number })[]
+}) => {
+  return <>
+    <h2>Results</h2>
+    {props.selections.map(selection => {
+      return <div>{selection.selectionName} - {selection.count}</div>
+    })}
+  </>
+})
 
 
+export const submitSelection = server$(async function (inputs: {
+  selection: PokemonDisplay,
+  option1: PokemonDisplay,
+  option2: PokemonDisplay,
+}) {
+  console.log('starting server side submission')
+  const auth_token = this.cookie.get("auth_token");
+  if (!auth_token) {
+    throw new Error("No auth token provided")
+  }
+  const qb = getQueryBuilder()
+  const user = await qb.selectFrom("users").selectAll()
+    .where("auth_token", "=", auth_token.value)
+    .executeTakeFirst();
+  if (!user) {
+    throw new Error("User not found from auth token provided")
+  }
+
+  const { selection, option1, option2 } = inputs;
+  if (selection.id !== option1.id && selection.id !== option2.id) {
+    throw new Error("Selection is not one of the options")
+  }
+
+  const [pokemonResponseOne, pokemonResponseTwo] = await Promise.all([
+    getPokemon(option1.id),
+    getPokemon(option2.id)
+  ]);
+  if (!pokemonResponseOne.success || !pokemonResponseTwo.success) {
+    throw new Error("Failed to get pokemon. Unexpected behavior")
+  }
+  if (
+    pokemonResponseOne.pokemon.name !== option1.name ||
+    pokemonResponseTwo.pokemon.name !== option2.name) {
+    throw new Error("Pokemon name provided does not match true name for id")
+  }
+
+  const insertResult = await qb.insertInto("selections").values({
+    optionOneName: option1.name,
+    optionTwoName: option2.name,
+    selectionName: selection.name,
+    userId: user.id
+  }).executeTakeFirst();
+
+  return Number(insertResult.insertId)
+})
+
+
+type PokemonDisplay = { name: string, image: string | null, id: number }
 export const PokemonPicker = component$((props: {
-  pokemon: { name: string, image: string | null }[]
+  pokemon: PokemonDisplay[]
 }) => {
   const pokemonOneSignal = useSignal(props.pokemon[0]);
   const pokemonTwoSignal = useSignal(props.pokemon[1]);
+  const selectionSignal = useSignal<PokemonDisplay | null>(null);
+  useTask$(async ({ track }) => {
+    const selection = track(() => selectionSignal.value);
+    if (!selection) {
+      return;
+    }
+    console.log('starting client side submission')
+    const result = await submitSelection({
+      option1: pokemonOneSignal.value,
+      option2: pokemonTwoSignal.value,
+      selection: pokemonOneSignal.value
+    });
+    console.log(result);
+    window.location.reload();
+  })
+
+  useStylesScoped$(`
+    div { 
+      cursor: pointer;
+      margin: 2rem;
+      width: fit-content;
+    }
+  `)
   return <section>
-    <h2>Which Pokémon is more popular?</h2>
-    <div>
+    <h2>Which Pokémon do you like more?</h2>
+
+    <div onClick$={() => { selectionSignal.value = pokemonOneSignal.value }}>
       <img src={pokemonOneSignal.value.image || undefined} />
       <p>{pokemonOneSignal.value.name}</p>
     </div>
-    <div>
+
+    <div onClick$={() => { selectionSignal.value = pokemonTwoSignal.value }}>
       <img src={pokemonTwoSignal.value.image || undefined} />
       <p>{pokemonTwoSignal.value.name}</p>
     </div>
+
   </section>
-})
+});
 
 
 

@@ -22,7 +22,10 @@ interface Pokemon {
 
 export async function getPokemon(id: number) {
     if (id < MIN_POKEMON_ID || id > MAX_POKEMON_ID) {
-        return { success: false as const, error: "Invalid Pokemon ID" as const }
+        return {
+            success: false as const,
+            error: "Invalid Pokemon ID" as const
+        }
     }
     const url = `https://pokeapi.co/api/v2/pokemon/${id}`;
     const pokemon = await fetch(url).then(raw => raw.json());
