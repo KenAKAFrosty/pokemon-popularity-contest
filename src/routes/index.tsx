@@ -1,21 +1,57 @@
-import { component$ } from '@builder.io/qwik';
+import { component$, useSignal } from '@builder.io/qwik';
 import { DocumentHead, server$ } from '@builder.io/qwik-city';
-import { getQueryBuilder } from '~/database/query-builder';
+import { checkToken, sendToken } from '~/twilio/verification';
+const testPhoneNumber = import.meta.env.VITE_TEST_PHONE_NUMBER;
 
-const getFirstUser = server$(async () => {
-  const qb = getQueryBuilder();
-  const user = await qb.selectFrom("users").selectAll().executeTakeFirst();
-  console.log(user);
-})
-
+const frontendSendToken = server$(async (phoneNumber: string) => {
+  const phoneNumberToUse = phoneNumber === "test" ? testPhoneNumber : phoneNumber;
+  return sendToken(phoneNumberToUse);
+});
+const frontendCheckToken = server$(async (inputs: { code: string, phoneNumber: string }) => {
+  const { phoneNumber, code } = inputs;
+  const phoneNumberToUse = phoneNumber === "test" ? testPhoneNumber : phoneNumber;
+  return checkToken({
+    code,
+    phoneNumber: phoneNumberToUse
+  });
+});
 export default component$(() => {
+
+  const phoneNumberSignal = useSignal("");
+  const codeSignal = useSignal("");
   return (<main>
     <h1>Pokémon Popularity Contest</h1>
+    <p>phone number</p>
+    <input
+      value={phoneNumberSignal.value}
+      onChange$={event => {
+        phoneNumberSignal.value = event.target.value;
+      }} />
     <button
-      onClick$={() => {
-        getFirstUser();
+      onClick$={async () => {
+        const result = await frontendSendToken(phoneNumberSignal.value);
+        console.log(result)
       }}
-    >Click me to run server code!</button>
+    >
+      Send token
+    </button>
+
+    <p>verify token</p>
+    <input
+      value={codeSignal.value}
+      onChange$={event => {
+        codeSignal.value = event.target.value;
+      }}
+    />
+    <button
+      onClick$={async () => {
+        const result = await frontendCheckToken({ code: codeSignal.value, phoneNumber: phoneNumberSignal.value });
+        console.log(result)
+      }}
+    >
+      Verify
+    </button>
+
   </main>);
 });
 
