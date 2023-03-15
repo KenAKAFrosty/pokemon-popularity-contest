@@ -1,5 +1,10 @@
 import { component$ } from '@builder.io/qwik';
-import type { DocumentHead } from '@builder.io/qwik-city';
+import { DocumentHead, server$ } from '@builder.io/qwik-city';
+import { DatabaseTable } from '~/database/query-builder';
+
+const test = server$(()=> { 
+
+})
 
 export default component$(() => {
   return (<main>
